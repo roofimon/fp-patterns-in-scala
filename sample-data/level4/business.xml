@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Business News Sample</title>
+    <link>https://example.com/business</link>
+    <description>Sample business news feed</description>
+    <item>
+      <title>Central banks hold rates steady</title>
+      <link>https://example.com/business/rates-hold</link>
+    </item>
+    <item>
+      <title>Electric vehicle sales hit record</title>
+      <link>https://example.com/business/ev-sales</link>
+    </item>
+    <item>
+      <title>Retail giant reports strong earnings</title>
+      <link>https://example.com/business/retail-earnings</link>
+    </item>
+  </channel>
+</rss>

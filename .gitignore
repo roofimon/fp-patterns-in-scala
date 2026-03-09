@@ -1,0 +1,10 @@
+# Build
+target/
+.bloop/
+.bsp/
+.metals/
+.sbt-home/
+
+# Output
+output/
+tech_news.txt

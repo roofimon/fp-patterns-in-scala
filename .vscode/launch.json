@@ -1,0 +1,175 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "main",
+      "mainClass": "main",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=verybasic",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "runYourOwnContainer",
+      "mainClass": "foundation.leve3.runYourOwnContainer",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=verybasic",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "runYourOwnContainerStep1",
+      "mainClass": "foundation.level3.runYourOwnContainerStep1",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=verybasic",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "runRecursion",
+      "mainClass": "foundation.level2.runRecursion",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=verybasic",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "runIOMonadDemo",
+      "mainClass": "level4.runIOMonadDemo",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=root",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "runAdvancedIOMonadDemo",
+      "mainClass": "level4.advance.runAdvancedIOMonadDemo",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=root",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "runLevel2",
+      "mainClass": "level4.runLevel2",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=root",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "runLevel4",
+      "mainClass": "level4.runLevel4",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=root",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "runLaziness",
+      "mainClass": "level4.io.runLaziness",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=root",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "runLevel5RSS",
+      "mainClass": "level5.pad.runLevel5FromFile",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=root",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "lazyDemo",
+      "mainClass": "foundation.level4.lazyDemo",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=root",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "runRSSProcess",
+      "mainClass": "level1.runRSSProcess",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=root",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "runWordCount",
+      "mainClass": "level1.runWordCount",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=root",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "runLevel2OwnMaybe",
+      "mainClass": "level3.maybe.level2.reveal.runLevel2OwnMaybe",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=root",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "ioDemo",
+      "mainClass": "foundation.level4.ioDemo",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=root",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "runIOMonadCon",
+      "mainClass": "level4.world.runIOMonadCon",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=root",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "runAndThenBoom",
+      "mainClass": "foundation.level4.io.runAndThenBoom",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=root",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
+    }
+  ]
+}

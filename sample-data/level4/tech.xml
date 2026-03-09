@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Technology News Sample</title>
+    <link>https://example.com/tech</link>
+    <description>Sample technology news feed</description>
+    <item>
+      <title>New AI model passes coding benchmarks</title>
+      <link>https://example.com/tech/ai-benchmarks</link>
+    </item>
+    <item>
+      <title>Rust 2.0 release candidate announced</title>
+      <link>https://example.com/tech/rust-2</link>
+    </item>
+    <item>
+      <title>Quantum chip hits 1000 qubits</title>
+      <link>https://example.com/tech/quantum-1k</link>
+    </item>
+  </channel>
+</rss>
