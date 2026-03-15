@@ -4,7 +4,7 @@ lazy val root = project
   .in(file("."))
   .settings(
     name := "very-basic",
-    version := "0.1.0-SNAPSHOT",
+    version := "ฯ0.1.0-SNAPSHOT",
     scalaVersion := scala3Version,
     Compile / unmanagedSourceDirectories += (Compile / sourceDirectory).value / "foundations",
     libraryDependencies += "org.typelevel" %% "cats-core" % "2.10.0",

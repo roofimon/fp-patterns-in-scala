@@ -26,7 +26,3 @@ val prepareToDestroy =
 
 val destroyYourOwnProduct = prepareToDestroy
 println(destroyYourOwnProduct)
-
-val x = println("Hello")
-val y = x
-y

@@ -1,37 +1,37 @@
 // import cats.effect.IO
 // import cats.effect.unsafe.implicits.global
 
-final class IO[A] private (val unsafeRun: () => A):
+final class BluePrint[A] private (val unsafeRun: () => A):
 
   // Transform the result without running the effect
-  def map[B](f: A => B): IO[B] =
-    IO(f(unsafeRun()))
+  def map[B](f: A => B): BluePrint[B] =
+    BluePrint(f(unsafeRun()))
 
   // Chain a computation that itself produces an IO
-  def flatMap[B](f: A => IO[B]): IO[B] =
-    IO(f(unsafeRun()).unsafeRun())
+  def flatMap[B](f: A => BluePrint[B]): BluePrint[B] =
+    BluePrint(f(unsafeRun()).unsafeRun())
 
-object IO:
+object BluePrint:
   // Wrap a pure value — no side effects
-  def pure[A](value: A): IO[A] =
-    IO(value)
+  def pure[A](value: A): BluePrint[A] =
+    BluePrint(value)
 
   // Wrap a side-effecting block, keeping it suspended
-  def apply[A](block: => A): IO[A] =
-    new IO(() => block)
+  def apply[A](block: => A): BluePrint[A] =
+    new BluePrint(() => block)
 
-def deleteProduction(target: String): IO[Unit] =
-  IO(println(s"💥 BOOM! Production $target Deleted!"))
+def deleteProduction(target: String): BluePrint[Unit] =
+  BluePrint(println(s"💥 BOOM! Production $target Deleted!"))
 
 def orchrestrationForDoomDay(
-    dangerousThing: => IO[Unit],
-    anotherDangerousThing: => IO[Unit]
-): IO[String] =
+    dangerousThing: => BluePrint[Unit],
+    anotherDangerousThing: => BluePrint[Unit]
+): BluePrint[String] =
   for
-    _ <- IO(println("Doing something dangerous..."))
+    _ <- BluePrint(println("Doing something dangerous..."))
     _ <- dangerousThing
     _ <- anotherDangerousThing
-    _ <- IO(println("Finished doing something dangerous."))
+    _ <- BluePrint(println("Finished doing something dangerous."))
     state = "All clear... for now."
   yield state
 
@@ -46,5 +46,5 @@ val prepareToDestroy =
 
 val destroyYourOwnProduct = prepareToDestroy
 
-destroyYourOwnProduct
-  .unsafeRun() // This is where the "bomb" actually goes off!
+// destroyYourOwnProduct
+//   .unsafeRun() // This is where the "bomb" actually goes off!

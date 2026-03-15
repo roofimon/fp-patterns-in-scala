@@ -5,15 +5,23 @@ x
 def add(a: Int, b: Int): Int = {
   a + b
 }
+
 val result = add(3, 4)
 
-def multiply(x: Int, y: Int): Int = x * y
-val product = multiply(6, 7)
+def multiply1(x: Int, y: Int): Int = x * y
+
+val product = multiply1(6, 7)
+
+val xx = multiply1(1, add(2, 3))
+
+// f(g(x)) = f.g(x, y)
 
 val square = (x: Int) => x * x
 
-def doThing(f: Int => Int, a: Int): Int = f.apply(a)
+def doThing(f: Int => Int, a: Int): Int = f(a)
+
 val add2 = doThing((a: Int) => a + 2, 1)
+
 val multiply2 = doThing((a: Int) => a * 2, 3)
 
 val multiply3 = doThing((a: Int) => a * 2, doThing((a: Int) => a + 2, 1))
@@ -27,6 +35,34 @@ def factorial(n: Int): Int =
 
 val students1 = List("Alice", "Bob", "Charlie", "David", "Eve")
 val scores1 = List(100, 90, 80, 70, 60)
+
+//add transform2 as extension method to List[String]
+extension (scoreList: List[Int])
+  def transform2(adder: Int): List[Int] =
+    if scoreList.isEmpty then Nil
+    else (scoreList.head + adder) :: scoreList.tail.transform2(adder)
+
+scores1.transform2(5)
+
+def curriedAdd(x: Int)(y: Int): Int = x + y
+val add5 = curriedAdd(5)
+val temp2 = add5
+
+add5(10)
+
+def doSideEffect = println("Doing side effect")
+
+val sideEffectResult = doSideEffect
+
+val temp = sideEffectResult
+
+extension (scoreList: List[Int])
+  def transform3(f: (Int, Int) => Int)(value: Int): List[Int] =
+    if scoreList.isEmpty then Nil
+    else f(scoreList.head, value) :: scoreList.tail.transform3(f)(value)
+
+val multiply: (Int, Int) => Int = (x, y) => x * y
+//val multiplyBy = transform3(multiply)
 
 factorial(4)
 

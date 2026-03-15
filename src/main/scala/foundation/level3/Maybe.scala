@@ -1,7 +1,7 @@
 package foundation.level3
 
-sealed trait Maybe[+A]
-case class Just[+A](value: A) extends Maybe[A]
+sealed trait Maybe[+T]
+case class Just[+T](value: T) extends Maybe[T]
 case object Empty extends Maybe[Nothing]
 
 // sealed trait Maybe[+A]:
@@ -15,6 +15,8 @@ case object Empty extends Maybe[Nothing]
 
 def divideByZero(a: Int, b: Int): Maybe[Int] =
   if b == 0 then Empty else Just(a / b)
+
+val result1: Maybe[Int] = divideByZero(10, 2)
 
 def double(a: Int): Int = a * 2
 

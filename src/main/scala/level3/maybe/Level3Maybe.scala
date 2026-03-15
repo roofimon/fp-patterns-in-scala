@@ -87,6 +87,11 @@ def processFeed(xmlPath: String)(using
 
   // val rssProcessed = processFeed(fetchData, parseRSS, formatter)
 
-  bbcFeeds.foreach: (xmlPath, path) =>
-    val content = processFeed(xmlPath)
-    content.fold(())(c => saveToFile(path, c))
+  bbcFeeds.foreach:
+    (xmlPath, path) =>
+      val content = processFeed(xmlPath)
+      content.fold(())(saveToFile(path, _))
+
+      // content match
+      //   case Just(c) => saveToFile(path, c)
+      //   case _       => println(s"Failed to process feed from $xmlPath")
