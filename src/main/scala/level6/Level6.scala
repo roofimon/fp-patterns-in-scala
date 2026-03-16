@@ -1,174 +1,224 @@
-// package level6
+package level6
 
-// import cats.Monad
-// import cats.effect.IO
-// import cats.effect.unsafe.implicits.global
-// import cats.syntax.all._
-// import scala.xml.XML
-// import level5.{FileReader, FileWriter, given}
-
-// // Level6: effect-polymorphic RSS pipeline (tagless-final)
-// // processFeedTo[F] runs in any F with Monad, FileReader, FileWriter.
-
-// def parseRSS(xmlContent: String): List[(String, String)] =
-//   val xml = XML.loadString(xmlContent)
-//   (xml \\ "item").toList.map: node =>
-//     val title = (node \ "title").text.trim
-//     val link = (node \ "link").text.trim
-//     (title, link)
-
-// def formatter(items: List[(String, String)]): String =
-//   items
-//     .map((title, link) => s"Title: $title\nLink: $link\n---")
-//     .mkString("\n")
-
-// def processFeedTo[F[_]](inputPath: String, outputPath: String)(using
-//     M: Monad[F],
-//     R: FileReader[F],
-//     W: FileWriter[F]
-// ): F[Option[Unit]] =
-//   for
-//     optRead <- R.read(inputPath)
-//     parsed = parseRSS(optRead.getOrElse(""))
-//     formatted = formatter(parsed)
-//     result <- W.write(outputPath, formatted)
-//   yield result
-
-// @main def runLevel6(): Unit =
-//   val dataDir = "sample-data/level4"
-//   val feeds = List(
-//     s"$dataDir/world.xml" -> "world_news.txt",
-//     s"$dataDir/tech.xml" -> "tech_news.txt",
-//     s"$dataDir/business.xml" -> "business_news.txt"
-//   )
-
-//   val program: IO[Unit] =
-//     IO.println("Level6: effect-polymorphic RSS pipeline") *>
-//       feeds
-//         .traverse((inputPath, outputPath) =>
-//           processFeedTo[IO](inputPath, outputPath).void
-//         )
-//         .void
-
-//   program.unsafeRunSync()
-
-import cats.MonadThrow
+import cats.Monoid
 import cats.effect.IO
-import cats.effect.unsafe.implicits.global
 import cats.syntax.all._
-import scala.xml.XML
-import java.nio.file.{Files, Paths}
-import scala.io.Source
-
-// Level7: promote errors from Option into the effect's error channel.
-// FeedError ADT extends Throwable → works directly with IO / MonadThrow.
-// FileReader / FileWriter return F[A] not F[Option[A]].
-// processFeedTo requires MonadThrow[F] instead of bare Monad[F].
 
 // ---------------------------------------------------------------------------
-// Error ADT
+// Domain + Errors
 // ---------------------------------------------------------------------------
 
-sealed trait FeedError extends Throwable:
-  override def getMessage: String
+case class RemoteRss(url: String)
+case class LocalRss(path: String)
+case class LocalFileLocation(path: String)
 
-case class ReadError(path: String) extends FeedError:
-  override def getMessage: String = s"Cannot read file: $path"
+case class RSSItem(title: String, link: String)
 
-case class WriteError(path: String) extends FeedError:
-  override def getMessage: String = s"Cannot write file: $path"
+sealed trait FeedError
+object FeedError:
+  case class ReadError(source: String, message: String) extends FeedError
+  case class ParseError(raw: String, message: String) extends FeedError
+  case class WriteError(target: String, message: String) extends FeedError
+
+case class ProcessSummary(
+    total: Int,
+    readFailures: Int,
+    parseFailures: Int,
+    writeFailures: Int,
+    successes: Int
+)
+
+object ProcessSummary:
+  val success: ProcessSummary = ProcessSummary(1, 0, 0, 0, 1)
+
+  def readFailure: ProcessSummary = ProcessSummary(1, 1, 0, 0, 0)
+  def parseFailure: ProcessSummary = ProcessSummary(1, 0, 1, 0, 0)
+  def writeFailure: ProcessSummary = ProcessSummary(1, 0, 0, 1, 0)
+
+  given Monoid[ProcessSummary] with
+    def empty: ProcessSummary = ProcessSummary(0, 0, 0, 0, 0)
+    def combine(a: ProcessSummary, b: ProcessSummary): ProcessSummary =
+      ProcessSummary(
+        total = a.total + b.total,
+        readFailures = a.readFailures + b.readFailures,
+        parseFailures = a.parseFailures + b.parseFailures,
+        writeFailures = a.writeFailures + b.writeFailures,
+        successes = a.successes + b.successes
+      )
+
+case class ProcessResult(
+    source: String,
+    target: String,
+    result: Either[FeedError, Unit]
+):
+  val summary: ProcessSummary = result match
+    case Right(_)                      => ProcessSummary.success
+    case Left(_: FeedError.ReadError)  => ProcessSummary.readFailure
+    case Left(_: FeedError.ParseError) => ProcessSummary.parseFailure
+    case Left(_: FeedError.WriteError) => ProcessSummary.writeFailure
 
 // ---------------------------------------------------------------------------
-// Type classes — Level 7 versions (self-contained, not imported from level5)
-// F[A] not F[Option[A]]: failures surface in the error channel
+// Ports
 // ---------------------------------------------------------------------------
 
-trait FileReader[F[_]]:
-  def read(path: String): F[String]
+trait FeedReader[F[_], A]:
+  def readFeed(input: A): F[Either[FeedError, String]]
 
-trait FileWriter[F[_]]:
-  def write(path: String, content: String): F[Unit]
+trait ContentWriter[F[_], B]:
+  def write(path: B, content: String): F[Either[FeedError, Unit]]
+
+given consoleWriter: ContentWriter[IO, LocalFileLocation] with
+  def write(
+      local: LocalFileLocation,
+      content: String
+  ): IO[Either[FeedError, Unit]] =
+    if local.path.contains("forbidden") then
+      IO.pure(Left(FeedError.WriteError(local.path, "Permission denied")))
+    else IO.println(s"💾 Saving output to ${local.path}") *> IO.pure(Right(()))
+
+// An instance for reading from a remote URL
+given remoteFeedReader: FeedReader[IO, RemoteRss] with
+  def readFeed(remote: RemoteRss): IO[Either[FeedError, String]] =
+    if remote.url.contains("invalid") then
+      IO.pure(
+        Left(FeedError.ReadError(remote.url, "Remote endpoint unavailable"))
+      )
+    else
+      IO.println(s"🌐 Fetching from URL: ${remote.url}") *> IO.pure(
+        Right("Remote Headline, https://example.com/remote")
+      )
+
+// An instance for reading from a local File
+given fileFeedReader: FeedReader[IO, LocalRss] with
+  def readFeed(file: LocalRss): IO[Either[FeedError, String]] =
+    if file.path.contains("missing") then
+      IO.pure(Left(FeedError.ReadError(file.path, "Local file missing")))
+    else
+      IO.println(s"📂 Reading file: ${file.path}") *> IO.pure(
+        Right("Local Headline, https://example.com/local")
+      )
+
+extension [A](input: A)
+  def readFeed[F[_]](using
+      reader: FeedReader[F, A]
+  ): F[Either[FeedError, String]] =
+    reader.readFeed(input)
 
 // ---------------------------------------------------------------------------
-// IO instances — .adaptError converts any Throwable → typed FeedError
+// Pure domain functions
 // ---------------------------------------------------------------------------
 
-given FileReader[IO] with
-  def read(path: String): IO[String] =
-    IO.blocking:
-      val source = Source.fromFile(path)
-      try source.mkString
-      finally source.close()
-    .adaptError:
-        case _ => ReadError(path)
+def parseRSS(content: String): Either[FeedError, List[RSSItem]] =
+  content.split(",").map(_.trim).toList match
+    case title :: link :: Nil if title.nonEmpty && link.nonEmpty =>
+      Right(List(RSSItem(title, link)))
+    case _ =>
+      Left(FeedError.ParseError(content, "Expected format: title, link"))
 
-given FileWriter[IO] with
-  def write(path: String, content: String): IO[Unit] =
-    IO.blocking:
-      Files.write(Paths.get(path), content.getBytes)
-      ()
-    .adaptError:
-        case _ => WriteError(path)
-    *> IO.println(s"Saved to $path")
-
-// ---------------------------------------------------------------------------
-// Pure functions (unchanged from level6)
-// ---------------------------------------------------------------------------
-
-def parseRSS(xmlContent: String): List[(String, String)] =
-  val xml = XML.loadString(xmlContent)
-  (xml \\ "item").toList.map: node =>
-    val title = (node \ "title").text.trim
-    val link = (node \ "link").text.trim
-    (title, link)
-
-def formatter(items: List[(String, String)]): String =
+def format(items: List[RSSItem]): String =
   items
-    .map((title, link) => s"Title: $title\nLink: $link\n---")
+    .map(item => s"Title: ${item.title} Link: ${item.link}\n---")
     .mkString("\n")
 
 // ---------------------------------------------------------------------------
-// Effect-polymorphic pipeline — MonadThrow[F] replaces bare Monad[F]
-// Returns F[Unit] not F[Option[Unit]]: the type honestly declares failure
+// Monad: dependent composition (read -> parse -> format -> write)
 // ---------------------------------------------------------------------------
 
-def processFeedTo[F[_]](inputPath: String, outputPath: String)(using
-    F: MonadThrow[F],
-    R: FileReader[F],
-    W: FileWriter[F]
-): F[Unit] =
+def processFeed[A, B](input: A, outputPath: B)(using
+    reader: FeedReader[IO, A],
+    writer: ContentWriter[IO, B]
+): IO[ProcessResult] =
   for
-    content <- R.read(inputPath) // raises ReadError — no getOrElse
-    parsed = parseRSS(content)
-    formatted = formatter(parsed)
-    _ <- W.write(outputPath, formatted) // raises WriteError
-  yield ()
+    contentOrError <- input.readFeed
+    result <- contentOrError match
+      case Left(readError) => IO.pure(Left(readError))
+      case Right(content)  =>
+        parseRSS(content) match
+          case Left(parseError) => IO.pure(Left(parseError))
+          case Right(parsed)    =>
+            val formatted = format(parsed)
+            writer.write(outputPath, formatted)
+  yield ProcessResult(input.toString, outputPath.toString, result)
 
 // ---------------------------------------------------------------------------
-// Entry point — errors handled at the edge, not inside the pipeline
+// Applicative: independent composition
 // ---------------------------------------------------------------------------
 
-@main def runLevel7(): Unit =
-  val dataDir = "sample-data/level4"
-  val feeds = List(
-    s"$dataDir/world.xml" -> "world_news.txt",
-    s"$dataDir/tech.xml" -> "tech_news.txt",
-    s"$dataDir/business.xml" -> "business_news.txt"
+def readTwoIndependent(
+    remote: RemoteRss,
+    local: LocalRss
+): IO[(Either[FeedError, String], Either[FeedError, String])] =
+  (remote.readFeed[IO], local.readFeed[IO]).mapN((remoteResult, localResult) =>
+    (remoteResult, localResult)
   )
 
-  val program: IO[Unit] =
-    IO.println(
-      "Level7: error channel promotion (MonadThrow + FeedError ADT)"
-    ) *>
-      feeds
-        .traverse: (inputPath, outputPath) =>
-          processFeedTo[IO](inputPath, outputPath)
-            .handleErrorWith:
-              case ReadError(path) =>
-                IO.println(s"[Error] Could not read: $path")
-              case WriteError(path) =>
-                IO.println(s"[Error] Could not write: $path")
-              case other => IO.raiseError(other)
-        .void
+// ---------------------------------------------------------------------------
+// Monoid: aggregate many process results into one summary
+// ---------------------------------------------------------------------------
+
+def processBatch[A, B](feeds: List[(A, B)])(using
+    reader: FeedReader[IO, A],
+    writer: ContentWriter[IO, B]
+): IO[(List[ProcessResult], ProcessSummary)] =
+  feeds
+    .traverse((input, outputPath) => processFeed(input, outputPath))
+    .map(results => (results, results.map(_.summary).combineAll))
+
+val processLocalFile =
+  processFeed(
+    LocalRss("sample-data/level4/tech.xml"),
+    LocalFileLocation("output/local_feed.txt")
+  )
+
+val processRemoteUrl =
+  processFeed(
+    RemoteRss("https://feeds.bbci.co.uk/news"),
+    LocalFileLocation("output/news.txt")
+  )
+
+@main def run(): Unit =
+  import cats.effect.unsafe.implicits.global
+
+  val localFeeds = List(
+    LocalRss("sample-data/level4/tech.xml") -> LocalFileLocation(
+      "output/level6_local_tech.txt"
+    ),
+    LocalRss("missing/file.xml") -> LocalFileLocation(
+      "output/level6_local_missing.txt"
+    )
+  )
+
+  val remoteFeeds = List(
+    RemoteRss("https://feeds.bbci.co.uk/news") -> LocalFileLocation(
+      "output/level6_remote_news.txt"
+    ),
+    RemoteRss("https://invalid.example.com/rss") -> LocalFileLocation(
+      "output/level6_remote_fail.txt"
+    )
+  )
+
+  val program = for
+    independentReads <- readTwoIndependent(
+      RemoteRss("https://feeds.bbci.co.uk/news"),
+      LocalRss("sample-data/level4/tech.xml")
+    )
+    _ <- IO.println(s"Applicative preview (remote/local): $independentReads")
+
+    localRun <- processBatch(localFeeds)
+    (localResults, localSummary) = localRun
+    _ <- IO.println(s"Local results: ${localResults.map(_.result)}")
+    _ <- IO.println(s"Local summary: $localSummary")
+
+    remoteRun <- processBatch(remoteFeeds)
+    (remoteResults, remoteSummary) = remoteRun
+    _ <- IO.println(s"Remote results: ${remoteResults.map(_.result)}")
+    _ <- IO.println(s"Remote summary: $remoteSummary")
+
+    totalSummary = localSummary |+| remoteSummary
+    _ <- IO.println(s"Combined summary (Monoid): $totalSummary")
+
+    _ <- processRemoteUrl
+    _ <- processLocalFile
+  yield ()
 
   program.unsafeRunSync()
