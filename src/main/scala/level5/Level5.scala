@@ -10,14 +10,18 @@ import scala.io.Source
 // Level5: RSS pipeline with FileReader/FileWriter type classes
 // Effectful ops abstracted by type class; IO instances + extension methods.
 
-trait FileReader[F[_]]:
-  def read(path: String): F[Option[String]]
+trait FeedReader[F[_], In]:
+  def read(input: In): F[Option[String]]
 
-trait FileWriter[F[_]]:
+final case class LocalPath(value: String)
+final case class RemoteUrl(value: String)
+
+trait ContentWriter[F[_]]:
   def write(path: String, content: String): F[Option[Unit]]
 
-given FileReader[IO] with
-  def read(path: String): IO[Option[String]] =
+given FeedReader[IO, LocalPath] with
+  def read(input: LocalPath): IO[Option[String]] =
+    val path = input.value
     IO.blocking:
       try
         val source = Source.fromFile(path)
@@ -29,7 +33,21 @@ given FileReader[IO] with
         case Some(s) => IO.some(s)
       }
 
-given FileWriter[IO] with
+given FeedReader[IO, RemoteUrl] with
+  def read(input: RemoteUrl): IO[Option[String]] =
+    val url = input.value
+    IO.blocking:
+      try
+        val source = Source.fromURL(url)
+        try Some(source.mkString)
+        finally source.close()
+      catch case _: Exception => None
+    .flatMap {
+        case None    => IO.println(s"[Error] Failed to read $url").as(None)
+        case Some(s) => IO.some(s)
+      }
+
+given ContentWriter[IO] with
   def write(path: String, content: String): IO[Option[Unit]] =
     IO.blocking:
       try
@@ -41,10 +59,10 @@ given FileWriter[IO] with
           IO.println(s"✅ Saved to $path").as(Some(()))
         )
 
-extension (path: String)(using R: FileReader[IO])
-  def readContent: IO[Option[String]] = R.read(path)
+extension [In](input: In)(using R: FeedReader[IO, In])
+  def readContent: IO[Option[String]] = R.read(input)
 
-extension (content: String)(using W: FileWriter[IO])
+extension (content: String)(using W: ContentWriter[IO])
   def writeTo(path: String): IO[Option[Unit]] = W.write(path, content)
 
 def parseRSS(xmlContent: String): List[(String, String)] =
@@ -59,31 +77,50 @@ def formatter(items: List[(String, String)]): String =
     .map((title, link) => s"Title: $title\nLink: $link\n---")
     .mkString("\n")
 
-def processFeedTo(inputPath: String, outputPath: String)(using
-    FileReader[IO],
-    FileWriter[IO]
+def processFeedTo[In](input: In, outputPath: String)(using
+    FeedReader[IO, In],
+    ContentWriter[IO]
 ): IO[Option[Unit]] =
   for
-    optRead <- inputPath.readContent
-    parsed = parseRSS(optRead.getOrElse(""))
-    formatted = formatter(parsed)
-    result <- formatted.writeTo(outputPath)
+    optRead <- input.readContent
+    result <- optRead match
+      case Some(content) =>
+        val parsed = parseRSS(content)
+        val formatted = formatter(parsed)
+        formatted.writeTo(outputPath)
+      case None => IO.pure(None)
   yield result
 
 @main def runLevel5RSS(): Unit =
   val dataDir = "sample-data/level4"
   val feeds = List(
-    s"$dataDir/world.xml" -> "world_news.txt",
-    s"$dataDir/tech.xml" -> "tech_news.txt",
-    s"$dataDir/business.xml" -> "business_news.txt"
+    LocalPath(s"$dataDir/world.xml") -> "world_news.txt",
+    LocalPath(s"$dataDir/tech.xml") -> "tech_news.txt",
+    LocalPath(s"$dataDir/business.xml") -> "business_news.txt"
   )
 
   val program: IO[Unit] =
     IO.println("Level5: RSS from local files (IO Monad + type classes)") *>
       feeds
-        .traverse((inputPath, outputPath) =>
-          processFeedTo(inputPath, outputPath).void
-        )
+        .traverse((input, outputPath) => processFeedTo(input, outputPath).void)
+        .void
+
+  program.unsafeRunSync()
+
+@main def runLevel5RSSFromRemote(): Unit =
+  val remoteFeeds = List(
+    RemoteUrl(
+      "https://feeds.bbci.co.uk/news/technology/rss.xml"
+    ) -> "remote_tech_news.txt",
+    RemoteUrl(
+      "https://feeds.bbci.co.uk/news/business/rss.xml"
+    ) -> "remote_business_news.txt"
+  )
+
+  val program: IO[Unit] =
+    IO.println("Level5: RSS from remote URLs (IO Monad + type classes)") *>
+      remoteFeeds
+        .traverse((input, outputPath) => processFeedTo(input, outputPath).void)
         .void
 
   program.unsafeRunSync()

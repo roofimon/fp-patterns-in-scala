@@ -1,4 +1,4 @@
-package level6.paa
+package level5.paa
 
 import cats.effect.IO
 import java.nio.file.{Files, Paths}
@@ -10,8 +10,9 @@ import scala.io.Source
 // Concrete implementations of the ports for specific technologies.
 // These contain all the technical details (File System, Database, HTTP, etc.)
 
-class FileSystemFeedReader extends FeedReader[IO]:
-  def read(path: String): IO[Option[String]] =
+class FileSystemFeedReader extends FeedReader[IO, LocalPath]:
+  def read(input: LocalPath): IO[Option[String]] =
+    val path = input.value
     IO.blocking:
       try
         val source = Source.fromFile(path)
@@ -20,6 +21,19 @@ class FileSystemFeedReader extends FeedReader[IO]:
       catch case _: Exception => None
     .flatMap:
         case None => IO.println(s"[Error] Failed to read $path").as(None)
+        case some => IO.pure(some)
+
+class RemoteFeedReader extends FeedReader[IO, RemoteUrl]:
+  def read(input: RemoteUrl): IO[Option[String]] =
+    val url = input.value
+    IO.blocking:
+      try
+        val source = Source.fromURL(url)
+        try Some(source.mkString)
+        finally source.close()
+      catch case _: Exception => None
+    .flatMap:
+        case None => IO.println(s"[Error] Failed to read $url").as(None)
         case some => IO.pure(some)
 
 class FileSystemFeedWriter extends FeedWriter[IO]:

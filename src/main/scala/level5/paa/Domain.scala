@@ -1,5 +1,4 @@
-package level6.paa
-
+package level5.paa
 import scala.xml.XML
 
 // ---------------------------------------------------------------------------
@@ -7,6 +6,9 @@ import scala.xml.XML
 // ---------------------------------------------------------------------------
 // Pure business logic and data structures.
 // Completely independent of IO, databases, or frameworks.
+
+final case class LocalPath(value: String)
+final case class RemoteUrl(value: String)
 
 case class RSSItem(title: String, link: String)
 

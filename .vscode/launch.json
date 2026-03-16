@@ -170,6 +170,16 @@
       "args": [],
       "jvmOptions": [],
       "env": {}
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "run",
+      "mainClass": "level5.my.run",
+      "buildTarget": "file:/home/dude/Workspace/Scala/VeryBasic/?id=root",
+      "args": [],
+      "jvmOptions": [],
+      "env": {}
     }
   ]
 }

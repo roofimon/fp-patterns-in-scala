@@ -26,3 +26,7 @@ for attempt <- 1 to maxRetries if !success do
       println(s"Retry $attempt/$maxRetries failed: ${e.getMessage}")
 
 if !success then println("💀 All retries exhausted. Aborting.")
+
+case class RSSItem(title: String, link: String)
+val noContent = RSSItem("Error", "No content").toString
+noContent
