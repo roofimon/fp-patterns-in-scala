@@ -7,7 +7,7 @@ package level5.paa
 // These are the boundaries between the core and the outside world.
 
 trait FeedReader[F[_], A]:
-  def readFeed(input: A): F[Either[Error, String]]
+  def readFeed(input: A): F[Either[FeedError, String]]
 
 trait ContentWriter[F[_], B]:
-  def write(path: B, content: String): F[Unit]
+  def write(path: B, content: String): F[Either[FeedError, Unit]]
