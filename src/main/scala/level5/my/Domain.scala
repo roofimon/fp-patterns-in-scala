@@ -6,24 +6,25 @@ import cats.effect.IO
 // ---------------------------------------------------------------------------
 // Pure business logic and data structures.
 // Completely independent of IO, databases, or frameworks.
-case class RemoteUrl(url: String)
-case class LocalFile(path: String)
+case class RemoteRss(url: String)
+case class LocalRss(path: String)
+case class LocalFileLocation(path: String)
 
 case class RSSItem(title: String, link: String)
 
 trait FeedReader[F[_], A]:
   def readFeed(input: A): F[Either[Error, String]]
 
-trait ContentWriter[F[_]]:
-  def write(path: String, content: String): F[Unit]
+trait ContentWriter[F[_], B]:
+  def write(path: B, content: String): F[Unit]
 
-given consoleWriter: ContentWriter[IO] with
-  def write(path: String, content: String): IO[Unit] =
-    IO.println(s"💾 Saving $content JSON to $path") *> IO.unit
+given consoleWriter: ContentWriter[IO, LocalFileLocation] with
+  def write(local: LocalFileLocation, content: String): IO[Unit] =
+    IO.println(s"💾 Saving $content JSON to ${local.path}") *> IO.unit
 
 // An instance for reading from a remote URL
-given remoteFeedReader: FeedReader[IO, RemoteUrl] with
-  def readFeed(remote: RemoteUrl): IO[Either[Error, String]] =
+given remoteFeedReader: FeedReader[IO, RemoteRss] with
+  def readFeed(remote: RemoteRss): IO[Either[Error, String]] =
     IO.println(s"🌐 Fetching from URL: ${remote.url}") *> IO.pure(
       Right(
         s"Some Title, http://example.com"
@@ -32,8 +33,8 @@ given remoteFeedReader: FeedReader[IO, RemoteUrl] with
     )
 
 // An instance for reading from a local File
-given fileFeedReader: FeedReader[IO, LocalFile] with
-  def readFeed(file: LocalFile): IO[Either[Error, String]] =
+given fileFeedReader: FeedReader[IO, LocalRss] with
+  def readFeed(file: LocalRss): IO[Either[Error, String]] =
     IO.println(s"📂 Reading file: ${file.path}") *> IO.pure(
       Right(s"Content of ${file.path}")
       // Left(Error(s"Failed to read file ${file.path}"))
@@ -54,9 +55,9 @@ def format(items: List[RSSItem]): String =
     .map(item => s"Title: ${item.title} Link: ${item.link}\n---")
     .mkString("\n")
 
-def processFeed[A](input: A, outputPath: String)(using
+def processFeed[A, B](input: A, outputPath: B)(using
     reader: FeedReader[IO, A],
-    writer: ContentWriter[IO]
+    writer: ContentWriter[IO, B]
 ): IO[Unit] =
   for
     maybeContent <- input.readFeed
@@ -67,9 +68,15 @@ def processFeed[A](input: A, outputPath: String)(using
   yield ()
 
 val processLocalFile =
-  processFeed(LocalFile("path/to/local/file.txt"), "output/local_feed.txt")
+  processFeed(
+    LocalRss("path/to/local/file.txt"),
+    LocalFileLocation("output/local_feed.txt")
+  )
 val processRemoteUrl =
-  processFeed(RemoteUrl("https://feeds.bbci.co.uk/news"), "output/news.txt")
+  processFeed(
+    RemoteRss("https://feeds.bbci.co.uk/news"),
+    LocalFileLocation("output/news.txt")
+  )
 
 @main def run(): Unit =
   import cats.effect.unsafe.implicits.global
