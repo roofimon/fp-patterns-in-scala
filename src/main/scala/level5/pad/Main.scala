@@ -1,48 +1,39 @@
-package level5.pad
-
+package level5.paa
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import cats.syntax.all._
 
-// Wiring: compose adapters and run. Reader is passed explicitly; writer is wired via given.
+// ---------------------------------------------------------------------------
+// Main Entry Point
+// ---------------------------------------------------------------------------
+// Manual Dependency Injection: wires adapters into the application layer.
 
-@main def runLevel5FromFile(): Unit =
+@main def run(): Unit =
+  import cats.effect.unsafe.implicits.global
 
-  println("Level5.pad: RSS from file (ContentReader + explicit adapter)")
-  val dataDir = "sample-data/level4"
-  val feeds = List(
-    s"$dataDir/world.xml" -> "output/world_news.txt",
-    s"$dataDir/tech.xml" -> "output/tech_news.txt",
-    s"$dataDir/business.xml" -> "output/business_news.txt"
+  val localFeeds = List(
+    LocalRss("sample-data/level4/tech.xml") -> LocalFileLocation(
+      "output/local_feed.txt"
+    ),
+    LocalRss("missing/file.xml") -> LocalFileLocation(
+      "output/local_missing.txt"
+    )
   )
 
-  val program: IO[Unit] =
-    IO.println(
-      "Level5.pad: RSS from file (ContentReader + explicit adapter)"
-    ) *>
-      feeds
-        .traverse((inputPath, outputPath) =>
-          processFeedTo(inputPath, outputPath)(FileSystemReaderAdapter).void
-        )
-        .void
-
-  program.unsafeRunSync()
-
-@main def runLevel5FromRss(): Unit =
-  val feeds = List(
-    "https://feeds.bbci.co.uk/news/world/rss.xml" -> "output/world_rss.txt",
-    "https://feeds.bbci.co.uk/news/technology/rss.xml" -> "output/tech_rss.txt",
-    "https://feeds.bbci.co.uk/news/business/rss.xml" -> "output/business_rss.txt"
+  val remoteFeeds = List(
+    RemoteRss("https://feeds.bbci.co.uk/news") -> LocalFileLocation(
+      "output/news.txt"
+    ),
+    RemoteRss("https://invalid.example.com/rss") -> LocalFileLocation(
+      "output/news_fail.txt"
+    )
   )
 
-  val program: IO[Unit] =
-    IO.println(
-      "Level5.pad: RSS from URL (ContentReader + explicit adapter)"
-    ) *>
-      feeds
-        .traverse((rssUrl, outputPath) =>
-          processFeedTo(rssUrl, outputPath)(RssReadAdapter).void
-        )
-        .void
+  val program = for
+    remoteResults <- processFeeds(remoteFeeds)
+    _ <- IO.println(s"Remote results: $remoteResults")
+    localResults <- processFeeds(localFeeds)
+    _ <- IO.println(s"Local results: $localResults")
+  yield ()
 
   program.unsafeRunSync()

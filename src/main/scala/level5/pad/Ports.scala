@@ -1,10 +1,13 @@
-package level5.pad
+package level5.paa
 
-// Ports (driven: read/write content).
-// Interfaces the core depends on; adapters provide implementations.
+// ---------------------------------------------------------------------------
+// Ports (Interfaces)
+// ---------------------------------------------------------------------------
+// Define the contracts that the application requires.
+// These are the boundaries between the core and the outside world.
 
-trait ContentReader[F[_]]:
-  def read(path: String): F[Option[String]]
+trait FeedReader[F[_], A]:
+  def readFeed(input: A): F[Either[FeedError, String]]
 
-trait FileWriter[F[_]]:
-  def write(path: String, content: String): F[Option[Unit]]
+trait ContentWriter[F[_], B]:
+  def write(path: B, content: String): F[Either[FeedError, Unit]]
