@@ -27,7 +27,7 @@ given remoteFeedReader: FeedReader[IO, RemoteUrl] with
     IO.println(s"🌐 Fetching from URL: ${remote.url}") *> IO.pure(
       Right(
         s"Some Title, http://example.com"
-      ) // Dummy content for demonstration
+      )
       // Left(Error(s"Failed to fetch from ${remote.url}"))
     )
 
@@ -35,8 +35,8 @@ given remoteFeedReader: FeedReader[IO, RemoteUrl] with
 given fileFeedReader: FeedReader[IO, LocalFile] with
   def readFeed(file: LocalFile): IO[Either[Error, String]] =
     IO.println(s"📂 Reading file: ${file.path}") *> IO.pure(
-      // Right(s"Content of ${file.path}")
-      Left(Error(s"Failed to read file ${file.path}"))
+      Right(s"Content of ${file.path}")
+      // Left(Error(s"Failed to read file ${file.path}"))
     )
 
 extension [A](input: A)
